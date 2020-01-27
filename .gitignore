@@ -1,1 +1,5 @@
 *.ebi
+*.pdb
+*.map
+*.exe
+*.obj
