@@ -3,3 +3,7 @@
 *.map
 *.exe
 *.obj
+*.ipch
+.vs/easy_build/v15/.suo
+*.db
+*.sln

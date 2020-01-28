@@ -238,7 +238,7 @@ flocal inline b32 check_directory_for_file(char* dir, len_string to_find, len_st
     while(tok)
     {
         dir_chain.push_back(l_string(tok));
-        tok = strtok(NULL, "/");
+        tok = strtok(NULL, "\\");
     }
     do
     {
@@ -377,12 +377,12 @@ int main(u32 argc, char** argv)
    
     if (should_compile)
     {
-//        printf("Compile!\n");
+        //printf("Compile!\n");
         return 0;
     }
     else
     {
-//        printf("Don't compile!\n");
+        //printf("Don't compile!\n");
         return 1;
     }
 
