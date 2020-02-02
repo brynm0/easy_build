@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-#include "CommonDefines.h"
+#include "blib_utils.h"
 #include "DebugFileIO.cpp"
 #include "len_string.h"
 #include "stdlib_files.h"
@@ -82,6 +82,23 @@ flocal inline u32 find_last_occurence_of(char* str, char c)
         str++;
     }
     return last_occ;
+}
+
+b32 is_bat_file(char* path)
+{
+    while(*path)
+    {
+        if (*path == '.')
+        {
+            if (path[1] == 'b' && (path[2] == 0 || (path[2] == 'a' && path[3] == 't')))
+            {
+                return true;
+            }
+        }
+        path++;
+        
+    }
+    return false;
 }
 
 b32 is_cpp_file(char* path)
@@ -166,6 +183,10 @@ b32 should_compile_file(char* file_name, const len_string& parent_file_str, b32*
     {
         append_to_len_string(&file_name_only, "_inl");
         return false;
+    }
+    else if (is_bat_file(file_name))
+    {
+        append_to_len_string(&file_name_only, "_bat");
     }
     if (already_checked_map.find(file_name_only) != already_checked_map.end())
     {
@@ -334,6 +355,12 @@ flocal inline b32 should_compile_recursive(char* file_name, const std::vector<ch
                         }
                     }
                     len_string full_dir;
+#if 0
+                    if (streq(l.str, "\"jump", 5))
+                    {
+                        printf("ack\n");
+                    }
+#endif
                     if(check_include_dirs_for_file(include_dirs, l, &full_dir))
                     {
                         b32 compile_temp = should_compile_recursive(full_dir.str, include_dirs, parent_str);
@@ -353,8 +380,8 @@ flocal inline b32 should_compile_recursive(char* file_name, const std::vector<ch
 int main(u32 argc, char** argv) 
 {
     std::vector<char*> include_dirs;
-    
-    ASSERT(is_cpp_file(argv[1]), "No CPP file passed.\nUsage is as follows.\neasy_build.exe [cpp_file] -I [include directory] [...]\nyou may list any number of include directories ")
+    std::vector<char*> extra_files;
+    ASSERT(is_cpp_file(argv[1]), "No CPP file passed.\nUsage is as follows.\neasy_build.exe [cpp_file] -I [include directory] [...] -F [extra file to check] [...]\nyou may list any number of include directories ")
     char* file_name = argv[1];
     for (int i = 2; i < argc; i++)
     {
@@ -363,17 +390,35 @@ int main(u32 argc, char** argv)
             //printf("%s\n",argv[i+1]);
             include_dirs.push_back(argv[i+1]);
         }
+        if (strlen(argv[i]) == 2 && argv[i][0] == '-' && argv[i][1] == 'F')
+        {
+            extra_files.push_back(argv[i+1]);
+        }
     }
-    
+        
     u32 path_len = find_last_occurence_of(file_name, '\\');
     len_string file_name_only = l_string(&file_name[path_len+1]);
     u32 period_idx = find_first_occurence_of_char(file_name_only, '.');
     file_name_only.str[period_idx] = 0;
     file_name_only.string_len = period_idx;
     
-    len_string parent_str = l_string(file_name);
+    len_string parent_str = l_string(file_name_only);
     append_to_len_string(&parent_str, "_");
-    b32 should_compile = should_compile_recursive(file_name, include_dirs, file_name_only);
+    
+    b32 should_compile = false;
+    LOOP(i, extra_files.size())
+    {
+        b32 found_in_map;
+        if (should_compile_file(extra_files[i], parent_str, &found_in_map))
+        {
+            should_compile = true;
+        }
+    }
+    if (should_compile_recursive(file_name, include_dirs, file_name_only))
+    {
+        should_compile = true;
+    }
+    
    
     if (should_compile)
     {
